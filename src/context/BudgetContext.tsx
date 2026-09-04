@@ -1,12 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { MonthData } from '../types/budget';
 import * as budgetStore from '../services/budgetStore';
+import * as cloudBudgetStore from '../services/cloudBudgetStore';
+import { useAuth } from './AuthContext';
 
 interface BudgetContextType {
   currentMonthKey: string;
   monthData: MonthData;
+  loading: boolean;
   setCurrentMonthKey: (monthKey: string) => void;
-  refreshData: () => void;
+  refreshData: () => Promise<void>;
   updateMonthlyBudget: (budget: number) => void;
   addCategory: (name: string, budgetLimit: number) => void;
   updateCategory: (categoryId: string, name: string, budgetLimit: number) => void;
@@ -14,6 +17,8 @@ interface BudgetContextType {
   addExpense: (amount: number, categoryId: string, date: string, description: string) => void;
   updateExpense: (expenseId: string, updated: { amount?: number; categoryId?: string; date?: string; description?: string }) => void;
   deleteExpense: (expenseId: string) => void;
+  syncing: boolean;
+  syncedAt: string | null;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
@@ -26,56 +31,106 @@ const getCurrentMonthKey = (): string => {
 };
 
 export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, session } = useAuth();
   const [currentMonthKey, setCurrentMonthKey] = useState<string>(getCurrentMonthKey());
   const [monthData, setMonthData] = useState<MonthData>(() => budgetStore.getMonthData(currentMonthKey));
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
 
-  const refreshData = () => {
-    setMonthData(budgetStore.getMonthData(currentMonthKey));
-  };
+  const isCloudEnabled = !!user && !!session;
 
+  // Load data from cloud or local storage
+  const loadData = useCallback(async () => {
+    if (isCloudEnabled && user?.id) {
+      try {
+        const data = await cloudBudgetStore.fetchMonthData(user.id, currentMonthKey);
+        setMonthData(data);
+      } catch (e) {
+        console.warn('Cloud fetch failed, using local:', e);
+        setMonthData(budgetStore.getMonthData(currentMonthKey));
+      }
+    } else {
+      setMonthData(budgetStore.getMonthData(currentMonthKey));
+    }
+    setLoading(false);
+  }, [currentMonthKey, isCloudEnabled, user?.id]);
+
+  // Initial load and reload on month/user change
   useEffect(() => {
-    refreshData();
-  }, [currentMonthKey]);
+    setLoading(true);
+    loadData();
+  }, [loadData]);
+
+  const persistToCloud = useCallback(async (data: MonthData) => {
+    if (!isCloudEnabled || !user?.id) return false;
+    try {
+      setSyncing(true);
+      await cloudBudgetStore.saveMonthData(user.id, currentMonthKey, data);
+      setSyncedAt(new Date().toISOString());
+      return true;
+    } catch (e) {
+      console.error('Cloud sync failed:', e);
+      return false;
+    } finally {
+      setSyncing(false);
+    }
+  }, [isCloudEnabled, user?.id, currentMonthKey]);
 
   const updateMonthlyBudget = (budget: number) => {
-    budgetStore.updateMonthlyBudget(currentMonthKey, budget);
-    refreshData();
+    const updated = budgetStore.updateMonthlyBudget(currentMonthKey, budget);
+    setMonthData(updated);
+    persistToCloud(updated);
   };
 
   const addCategory = (name: string, budgetLimit: number) => {
-    budgetStore.addCategory(currentMonthKey, name, budgetLimit);
-    refreshData();
+    const updated = budgetStore.addCategory(currentMonthKey, name, budgetLimit);
+    setMonthData(updated);
+    persistToCloud(updated);
   };
 
   const updateCategory = (categoryId: string, name: string, budgetLimit: number) => {
-    budgetStore.updateCategory(currentMonthKey, categoryId, name, budgetLimit);
-    refreshData();
+    const updated = budgetStore.updateCategory(currentMonthKey, categoryId, name, budgetLimit);
+    setMonthData(updated);
+    persistToCloud(updated);
   };
 
   const deleteCategory = (categoryId: string) => {
-    budgetStore.deleteCategory(currentMonthKey, categoryId);
-    refreshData();
+    const updated = budgetStore.deleteCategory(currentMonthKey, categoryId);
+    setMonthData(updated);
+    persistToCloud(updated);
   };
 
   const addExpense = (amount: number, categoryId: string, date: string, description: string) => {
-    budgetStore.addExpense(currentMonthKey, amount, categoryId, date, description);
-    refreshData();
+    const updated = budgetStore.addExpense(currentMonthKey, amount, categoryId, date, description);
+    setMonthData(updated);
+    persistToCloud(updated);
   };
 
   const updateExpense = (expenseId: string, updated: { amount?: number; categoryId?: string; date?: string; description?: string }) => {
-    budgetStore.updateExpense(currentMonthKey, expenseId, updated);
-    refreshData();
+    const result = budgetStore.updateExpense(currentMonthKey, expenseId, updated);
+    setMonthData(result);
+    persistToCloud(result);
   };
 
   const deleteExpense = (expenseId: string) => {
-    budgetStore.deleteExpense(currentMonthKey, expenseId);
-    refreshData();
+    const updated = budgetStore.deleteExpense(currentMonthKey, expenseId);
+    setMonthData(updated);
+    persistToCloud(updated);
   };
+
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    const cloudData = await cloudBudgetStore.fetchMonthData(user?.id ?? '', currentMonthKey);
+    if (cloudData) setMonthData(cloudData);
+    setLoading(false);
+  }, [currentMonthKey, user?.id]);
 
   return (
     <BudgetContext.Provider value={{
       currentMonthKey,
       monthData,
+      loading,
       setCurrentMonthKey,
       refreshData,
       updateMonthlyBudget,
@@ -84,7 +139,9 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       deleteCategory,
       addExpense,
       updateExpense,
-      deleteExpense
+      deleteExpense,
+      syncing,
+      syncedAt,
     }}>
       {children}
     </BudgetContext.Provider>

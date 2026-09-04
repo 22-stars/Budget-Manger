@@ -27,23 +27,23 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit, onDel
   };
 
   const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete "${expense.description}"?`)) {
+    if (window.confirm(`Delete "${expense.description}"?`)) {
       onDelete(expense.id);
     }
   };
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg hover:shadow-sm transition-shadow">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-bold text-stone-900 dark:text-stone-100">
+    <div className="flex items-center justify-between p-3 sm:p-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg hover:shadow-sm transition-shadow active:scale-[0.99]">
+      <div className="flex-1 min-w-0 mr-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <span className="text-base sm:text-lg font-bold text-stone-900 dark:text-stone-100 whitespace-nowrap">
             {formatCurrency(expense.amount)}
           </span>
-          <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          <span className="text-sm font-medium text-stone-700 dark:text-stone-300 truncate">
             {expense.description}
           </span>
         </div>
-        <div className="flex items-center gap-3 mt-1 text-sm text-stone-500 dark:text-stone-400">
+        <div className="flex items-center gap-3 mt-1 text-xs sm:text-sm text-stone-500 dark:text-stone-400 flex-wrap">
           <span className="px-2 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-xs font-medium">
             {category?.name || 'Unknown'}
           </span>
@@ -51,18 +51,22 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit, onDel
         </div>
       </div>
 
-      <div className="flex gap-1 ml-4">
+      <div className="flex gap-1 shrink-0">
         <button
           onClick={() => onEdit(expense)}
-          className="p-2 rounded hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
+          className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
           title="Edit expense"
+          aria-label="Edit expense"
+          style={{ minWidth: '36px', minHeight: '36px' }}
         >
           <Edit2 size={16} />
         </button>
         <button
           onClick={handleDelete}
-          className="p-2 rounded hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+          className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
           title="Delete expense"
+          aria-label="Delete expense"
+          style={{ minWidth: '36px', minHeight: '36px' }}
         >
           <Trash2 size={16} />
         </button>

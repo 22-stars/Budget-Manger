@@ -42,49 +42,55 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onEdit, on
   };
 
   return (
-    <div className={`bg-white dark:bg-stone-900 border-2 ${getBorderColor()} rounded-lg p-5 transition-all hover:shadow-md`}>
+    <div className={`bg-white dark:bg-stone-900 border-2 ${getBorderColor()} rounded-lg p-4 sm:p-5 transition-all hover:shadow-md active:scale-[0.98]`}>
       <div className="flex items-start justify-between mb-3">
-        <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
+        <h3 className="text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-100 truncate max-w-[60%]">
           {category.name}
         </h3>
-        <div className="flex gap-1">
+        <div className="flex gap-1 shrink-0">
           <button
             onClick={() => onEdit(category)}
-            className="p-1.5 rounded hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
+            className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
             title="Edit category"
+            aria-label="Edit category"
+            style={{ minWidth: '36px', minHeight: '36px' }}
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={() => onDelete(category.id)}
-            className="p-1.5 rounded hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
             title="Delete category"
+            aria-label="Delete category"
+            style={{ minWidth: '36px', minHeight: '36px' }}
           >
             <Trash2 size={14} />
           </button>
         </div>
       </div>
 
-      <div className="space-y-2 mb-4">
+      {/* Stats */}
+      <div className="space-y-1.5 mb-3">
         <div className="flex justify-between text-sm">
-          <span className="text-stone-600 dark:text-stone-400">Spent</span>
+          <span className="text-stone-500 dark:text-stone-400">Spent</span>
           <span className="font-medium text-stone-900 dark:text-stone-100">{formatCurrency(spent)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-stone-600 dark:text-stone-400">Budget</span>
+          <span className="text-stone-500 dark:text-stone-400">Budget</span>
           <span className="font-medium text-stone-900 dark:text-stone-100">{formatCurrency(category.budgetLimit)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-stone-600 dark:text-stone-400">Remaining</span>
+          <span className="text-stone-500 dark:text-stone-400">Left</span>
           <span className={`font-semibold ${isOverBudget ? 'text-red-600 dark:text-red-400' : 'text-stone-900 dark:text-stone-100'}`}>
             {isOverBudget ? '-' : ''}{formatCurrency(remaining)}
           </span>
         </div>
       </div>
 
-      <div className="mb-4">
+      {/* Progress bar */}
+      <div className="mb-3">
         <div className="flex justify-between items-center text-xs font-medium mb-1">
-          <span className="text-stone-500 dark:text-stone-400">{usagePercentage.toFixed(1)}% used</span>
+          <span className="text-stone-500 dark:text-stone-400">{usagePercentage.toFixed(0)}%</span>
         </div>
         <div className="w-full bg-stone-200 dark:bg-stone-800 rounded-full h-2 overflow-hidden">
           <div
@@ -94,14 +100,16 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onEdit, on
         </div>
         {isOverBudget && (
           <p className="mt-1 text-xs font-semibold text-red-600 dark:text-red-400">
-            {formatCurrency(spent - category.budgetLimit)} over budget
+            {formatCurrency(spent - category.budgetLimit)} over
           </p>
         )}
       </div>
 
+      {/* Add expense button */}
       <button
         onClick={() => onAddExpense(category.id)}
-        className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-lg hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors text-sm font-medium"
+        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-lg hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors text-sm font-medium active:scale-[0.97]"
+        style={{ minHeight: '44px' }}
       >
         <Plus size={16} />
         Add Expense
